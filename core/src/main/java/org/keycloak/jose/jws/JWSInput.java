@@ -39,6 +39,7 @@ public class JWSInput {
 
 
     public JWSInput(String wire) throws JWSInputException {
+        System.out.println("JWSInput - wire: " + wire);
         try {
             this.wireString = wire;
             String[] parts = wire.split("\\.");

@@ -493,6 +493,7 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
     }
 
     protected JsonWebToken validateToken(String encodedToken, boolean ignoreAudience) {
+        logger.info("Validating Token: " + encodedToken);
         if (encodedToken == null) {
             throw new IdentityBrokerException("No token from server.");
         }
