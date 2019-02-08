@@ -342,13 +342,20 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
         } catch (IOException e) {
             throw new IdentityBrokerException("Could not decode access token response.", e);
         }
+        logger.info("Extracting Values....");
         String accessToken = verifyAccessToken(tokenResponse);
+        logger.info("Access token: " + accessToken);
 
         String encodedIdToken = tokenResponse.getIdToken();
 
+        logger.info("encodedIdToken: " + encodedIdToken);
+
         JsonWebToken idToken = validateToken(encodedIdToken);
 
+        logger.info("idToken: " + idToken);
+
         try {
+            logger.info("About to extract identity");
             BrokeredIdentityContext identity = extractIdentity(tokenResponse, accessToken, idToken);
 
             if (getConfig().isStoreToken()) {
@@ -369,17 +376,26 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
     private static final MediaType APPLICATION_JWT_TYPE = MediaType.valueOf("application/jwt");
 
     protected BrokeredIdentityContext extractIdentity(AccessTokenResponse tokenResponse, String accessToken, JsonWebToken idToken) throws IOException {
+        logger.info("Extracting identity");
         String id = idToken.getSubject();
+        logger.info("Extracting identity => id: " + id);
         BrokeredIdentityContext identity = new BrokeredIdentityContext(id);
+        logger.info("Extracting identity => identity: " + identity);
         String name = (String) idToken.getOtherClaims().get(IDToken.NAME);
+        logger.info("Extracting identity => name: " + name);
         String preferredUsername = (String) idToken.getOtherClaims().get(getusernameClaimNameForIdToken());
+        logger.info("Extracting identity => preferredUsername: " + preferredUsername);
         String email = (String) idToken.getOtherClaims().get(IDToken.EMAIL);
+        logger.info("Extracting identity => email: " + email);
 
         if (!getConfig().isDisableUserInfoService()) {
+            logger.info("About to get user info!");
             String userInfoUrl = getUserInfoUrl();
+            logger.info("userInfo URL: " + userInfoUrl);
             if (userInfoUrl != null && !userInfoUrl.isEmpty() && (id == null || name == null || preferredUsername == null || email == null)) {
 
                 if (accessToken != null) {
+                    logger.info("We have an access token: " + accessToken);
                     SimpleHttp.Response response = executeRequest(userInfoUrl, SimpleHttp.doGet(userInfoUrl, session).header("Authorization", "Bearer " + accessToken));
                     String contentType = response.getFirstHeader(HttpHeaders.CONTENT_TYPE);
                     MediaType contentMediaType;
@@ -399,6 +415,7 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
                         JWSInput jwsInput;
 
                         try {
+                            logger.info("User Info Response: " + response.asString());
                             jwsInput = new JWSInput(response.asString());
                         } catch (JWSInputException cause) {
                             throw new RuntimeException("Failed to parse JWT userinfo response", cause);
@@ -412,11 +429,14 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
                     } else {
                         throw new RuntimeException("Unsupported content-type [" + contentType + "] in response from [" + userInfoUrl + "].");
                     }
-
+                    logger.info("Extracting user info from response.");
                     id = getJsonProperty(userInfo, "sub");
+                    logger.info("User Info (sub) => id: " + id);
                     name = getJsonProperty(userInfo, "name");
+                    logger.info("User Info (name) => name: " + name);
                     preferredUsername = getUsernameFromUserInfo(userInfo);
                     email = getJsonProperty(userInfo, "email");
+                    logger.info("User Info (email) => email: " + email);
                     AbstractJsonUserAttributeMapper.storeUserProfileForMapper(identity, userInfo, getConfig().getAlias());
                 }
             }
@@ -488,13 +508,14 @@ public class OIDCIdentityProvider extends AbstractOAuth2IdentityProvider<OIDCIde
     }
 
     protected JsonWebToken validateToken(String encodedToken) {
+        logger.info("Validating Token: " + encodedToken);
         boolean ignoreAudience = false;
 
         return validateToken(encodedToken, ignoreAudience);
     }
 
     protected JsonWebToken validateToken(String encodedToken, boolean ignoreAudience) {
-        logger.info("Validating Token: " + encodedToken);
+        logger.info("Validating Token: " + encodedToken + " ignore audience" + ignoreAudience);
         if (encodedToken == null) {
             throw new IdentityBrokerException("No token from server.");
         }
